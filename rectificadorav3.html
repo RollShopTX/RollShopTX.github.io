@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Área Rectificadora — Taller de Rodillos</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange:     #FF6200;
+    --orange-hot: #FF8C00;
+    --orange-dim: #C44A00;
+    --white:      #F5EFE0;
+    --cream:      #EDE3CE;
+    --dark:       #1A1208;
+    --dark-mid:   #2C1E0A;
+    --stripe:     rgba(255,98,0,0.12);
+    --glow:       0 0 24px rgba(255,98,0,0.55);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--dark);
+    color: var(--white);
+    font-family: 'Barlow Condensed', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* ── DIAGONAL STRIPE BG ── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+      -55deg,
+      transparent,
+      transparent 28px,
+      var(--stripe) 28px,
+      var(--stripe) 30px
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative; z-index: 2;
+    border-bottom: 3px solid var(--orange);
+    background: linear-gradient(180deg, #0D0900 0%, var(--dark) 100%);
+    padding: 0;
+  }
+
+  .warning-tape {
+    background: repeating-linear-gradient(
+      90deg,
+      var(--orange) 0px, var(--orange) 40px,
+      var(--dark) 40px, var(--dark) 80px
+    );
+    height: 14px;
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px 14px;
+  }
+
+  .hazard-badge {
+    width: 68px; height: 68px;
+    flex-shrink: 0;
+    animation: pulse-badge 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse-badge {
+    0%,100% { filter: drop-shadow(0 0 6px var(--orange)); }
+    50%      { filter: drop-shadow(0 0 20px var(--orange-hot)); }
+  }
+
+  .header-text h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 4vw, 3.4rem);
+    letter-spacing: 0.05em;
+    color: var(--orange);
+    line-height: 1;
+    text-shadow: var(--glow);
+  }
+
+  .header-text h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.1rem, 2.2vw, 1.8rem);
+    letter-spacing: 0.14em;
+    color: var(--cream);
+    margin-top: 4px;
+  }
+
+  .header-text p {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.78rem;
+    color: rgba(245,239,224,0.5);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  /* ── SECTION TITLE ── */
+  .section-label {
+    position: relative; z-index: 2;
+    text-align: center;
+    padding: 32px 20px 10px;
+  }
+
+  .section-label h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.4rem, 3vw, 2.4rem);
+    letter-spacing: 0.18em;
+    color: var(--white);
+    text-transform: uppercase;
+  }
+
+  .section-label h3 span { color: var(--orange); }
+
+  .divider {
+    width: 120px; height: 3px;
+    background: linear-gradient(90deg, transparent, var(--orange), transparent);
+    margin: 10px auto 0;
+    animation: shimmer 2.5s linear infinite;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: -200px 0; }
+    100% { background-position: 200px 0; }
+  }
+
+  /* ── GRID ── */
+  .grid {
+    position: relative; z-index: 2;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 20px 16px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* ── RISK CARD ── */
+  .card {
+    background: linear-gradient(145deg, #221508, #1a0f04);
+    border: 1px solid rgba(255,98,0,0.28);
+    border-radius: 4px;
+    padding: 0;
+    overflow: hidden;
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    cursor: default;
+  }
+
+  /* Only apply hover lift on devices that truly support hover (not touch screens) */
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover {
+      transform: translateY(-4px) scale(1.015);
+      border-color: var(--orange);
+      box-shadow: 0 8px 32px rgba(255,98,0,0.3);
+    }
+  }
+
+  .card-anim {
+    width: 100%;
+    height: 200px;
+    background: #0D0800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 2px solid rgba(255,98,0,0.22);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-anim svg {
+    width: 140px;
+    height: 140px;
+  }
+
+  .card-body {
+    padding: 14px 16px 16px;
+  }
+
+  .risk-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.75rem;
+    color: var(--orange-dim);
+    letter-spacing: 0.2em;
+  }
+
+  .risk-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--white);
+    line-height: 1.25;
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .risk-sub {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.72rem;
+    color: rgba(245,239,224,0.45);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+
+  .risk-tag {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 2px 8px;
+    font-size: 0.62rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,98,0,0.4);
+    color: var(--orange-hot);
+    border-radius: 2px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 2;
+    border-top: 2px solid rgba(255,98,0,0.25);
+    background: #0D0800;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  footer p {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.7rem;
+    color: rgba(245,239,224,0.35);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .blink {
+    animation: blink 1.2s step-start infinite;
+    color: var(--orange);
+    font-weight: 700;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ══════════════════════════════════════════
+     ANIMACIONES SVG — CADA RIESGO
+  ══════════════════════════════════════════ */
+
+  /* 1 — Atrapamiento: engranajes girando */
+  @keyframes rot-cw  { from {transform-origin:50% 50%; transform:rotate(0deg);}   to {transform-origin:50% 50%; transform:rotate(360deg);} }
+  @keyframes rot-ccw { from {transform-origin:50% 50%; transform:rotate(0deg);}   to {transform-origin:50% 50%; transform:rotate(-360deg);} }
+  .gear-a { animation: rot-cw  3s linear infinite; transform-origin: 38px 55px; }
+  .gear-b { animation: rot-ccw 2.2s linear infinite; transform-origin: 72px 55px; }
+  @keyframes hand-trap { 0%,100%{transform:translateX(0);} 60%{transform:translateX(14px);} 80%{transform:translateX(10px);} }
+  .hand-svg { animation: hand-trap 2.5s ease-in-out infinite; }
+
+  /* 2 — Atropellamiento: montacargas con baliza, rastro y reacción */
+  @keyframes conduccion {
+    0%        { transform: translateX(-85px); opacity: 0;   }
+    4%        { transform: translateX(-68px); opacity: 1;   }
+    78%       { transform: translateX(102px); opacity: 1;   }
+    86%       { transform: translateX(115px); opacity: 0;   }
+    87%,100%  { transform: translateX(-85px); opacity: 0;   }
+  }
+  @keyframes rueda-gira { from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+  @keyframes baliza-alerta {
+    0%,100% { opacity:0.25; transform:scale(1);   }
+    50%     { opacity:1;    transform:scale(1.5); }
+  }
+  @keyframes zona-choque-anim {
+    0%,46%   { opacity:0; transform:scale(0.3); }
+    54%      { opacity:1; transform:scale(1);   }
+    68%      { opacity:1; transform:scale(1.1); }
+    80%,100% { opacity:0; transform:scale(1.5); }
+  }
+  @keyframes persona-reacciona {
+    0%,48%   { transform:translate(0px,0px)   rotate(0deg);   }
+    56%      { transform:translate(7px,-2px)  rotate(-18deg); }
+    66%      { transform:translate(10px,2px)  rotate(-24deg); }
+    78%      { transform:translate(8px,4px)   rotate(-18deg); }
+    92%,100% { transform:translate(0px,0px)   rotate(0deg);   }
+  }
+  @keyframes rastro-anim {
+    0%,5%   { opacity:0; }
+    15%,75% { opacity:0.35; }
+    85%,100%{ opacity:0; }
+  }
+  .montacargas   { animation: conduccion 3.5s linear infinite; }
+  .rueda         { animation: rueda-gira 0.9s linear infinite; }
+  .baliza        { animation: baliza-alerta 0.5s ease-in-out infinite; transform-origin: 30px 36px; }
+  .zona-choque   { animation: zona-choque-anim 3.5s ease-in-out infinite; }
+  .persona-react { animation: persona-reacciona 3.5s ease-in-out infinite; transform-origin: 88px 70px; }
+  .rastro        { animation: rastro-anim 3.5s linear infinite; }
+
+  /* 3 — Caída de objetos */
+  @keyframes fall-obj { 0%{transform:translateY(-50px);opacity:0;} 40%{opacity:1;} 80%{transform:translateY(55px);opacity:1;} 100%{transform:translateY(55px);opacity:0;} }
+  .falling { animation: fall-obj 1.8s ease-in infinite; }
+
+  /* 4 — Caída a distinto nivel: pérdida de equilibrio + caída con arco */
+  @keyframes equilibrio {
+    0%,20%   { transform:translate(0px,0px) rotate(0deg);   opacity:1; }
+    34%      { transform:translate(5px,0px) rotate(18deg);  opacity:1; }
+    54%      { transform:translate(14px,12px) rotate(58deg);opacity:1; }
+    74%      { transform:translate(22px,36px) rotate(98deg);opacity:1; }
+    83%      { transform:translate(23px,38px) rotate(102deg);opacity:0; }
+    96%,100% { transform:translate(0px,0px) rotate(0deg);   opacity:0; }
+  }
+  .person-fall { animation: equilibrio 3.2s ease-in infinite; transform-origin: 46px 58px; }
+
+  /* 5 — Caída mismo nivel */
+  @keyframes slip { 0%{transform:rotate(0deg) translateX(0);} 50%{transform:rotate(35deg) translateX(8px);} 70%{transform:rotate(45deg) translateX(12px);} 100%{transform:rotate(45deg) translateX(12px);opacity:0;} }
+  .person-slip { animation: slip 2.4s ease-in-out infinite; transform-origin: bottom center; }
+
+  /* 6 — Contacto cortante: disco abrasivo con chispas */
+  @keyframes disc-spin { from{transform:rotate(0);} to{transform:rotate(360deg);} }
+  .grind-disc { animation: disc-spin 0.6s linear infinite; transform-origin: 55px 60px; }
+  @keyframes spark { 0%{transform:translate(0,0) scale(1);opacity:1;} 100%{transform:translate(var(--sx),var(--sy)) scale(0);opacity:0;} }
+  .sp { animation: spark 0.7s ease-out infinite; }
+  .sp1{--sx:12px;--sy:-18px; animation-delay:0s;}
+  .sp2{--sx:20px;--sy:-8px;  animation-delay:0.1s;}
+  .sp3{--sx:18px;--sy:14px;  animation-delay:0.2s;}
+  .sp4{--sx:6px; --sy:22px;  animation-delay:0.35s;}
+  .sp5{--sx:-4px;--sy:20px;  animation-delay:0.05s;}
+
+  /* 7 — Sustancias químicas: salpicadura */
+  @keyframes splash { 0%{transform:scale(0.5);opacity:0;} 40%{transform:scale(1.2);opacity:1;} 100%{transform:scale(1.5);opacity:0;} }
+  .chem-splash { animation: splash 2s ease-out infinite; transform-origin: 55px 65px; }
+  @keyframes drip { 0%{transform:translateY(0);opacity:1;} 100%{transform:translateY(20px);opacity:0;} }
+  .drip { animation: drip 1.2s ease-in infinite; }
+
+  /* 8 — Golpe contra inmóvil: acercamiento → impacto → recoil */
+  @keyframes person-walk {
+    0%      { transform:translateX(0px);   }
+    62%     { transform:translateX(38px);  }
+    70%     { transform:translateX(34px);  }
+    82%,100%{ transform:translateX(0px);   }
+  }
+  @keyframes head-shake {
+    0%,60%   { transform:translateX(0px); }
+    65%      { transform:translateX(4px);  }
+    70%      { transform:translateX(-3px); }
+    76%,100% { transform:translateX(0px); }
+  }
+  @keyframes impact-flash {
+    0%,58%  { opacity:0; transform:scale(0.3); }
+    66%     { opacity:1; transform:scale(1);   }
+    80%     { opacity:1; transform:scale(1.1); }
+    90%,100%{ opacity:0; transform:scale(1.4); }
+  }
+  .walker { animation: person-walk 3s ease-in-out infinite; }
+  .head-knock { animation: head-shake 3s ease-out infinite; }
+  .impact { animation: impact-flash 3s ease-out infinite; transform-origin: 70px 38px; }
+
+  /* 9 — Golpe por herramienta: mazo → swing → impacto → vibración */
+  @keyframes hammer-hit {
+    0%,12%  { transform:rotate(-50deg); }
+    42%     { transform:rotate(22deg);  }
+    58%,72% { transform:rotate(22deg);  }
+    100%    { transform:rotate(-50deg); }
+  }
+  @keyframes pieza-vibra {
+    0%,40%   { transform:translateX(0px);  }
+    44%      { transform:translateX(-3px); }
+    47%      { transform:translateX(3px);  }
+    50%      { transform:translateX(-2px); }
+    53%,100% { transform:translateX(0px);  }
+  }
+  @keyframes stars {
+    0%,38%  { opacity:0; transform:scale(0.3); }
+    46%     { opacity:1; transform:scale(1);   }
+    64%     { opacity:1; transform:scale(1);   }
+    76%,100%{ opacity:0; transform:scale(1.4); }
+  }
+  @keyframes motion-trail {
+    0%,55% { opacity:0; }
+    14%    { opacity:0.6; }
+    42%    { opacity:0.6; }
+    52%    { opacity:0; }
+  }
+  /* pivot at (58,16) = top grip; head is at BOTTOM, strikes workpiece at y≈65 */
+  .hammer      { animation: hammer-hit 1.8s cubic-bezier(0.4,0,0.2,1) infinite; transform-origin: 58px 16px; }
+  .pieza-metal { animation: pieza-vibra 1.8s ease-in-out infinite; }
+  .stars       { animation: stars 1.8s ease-out infinite; transform-origin: 46px 65px; }
+  .motion-trail{ animation: motion-trail 1.8s ease-in-out infinite; }
+
+  /* 10 — Pisada sobre objetos */
+  @keyframes foot-step { 0%{transform:translateY(-8px);} 50%{transform:translateY(4px);} 70%{transform:translateY(2px);} 100%{transform:translateY(-8px);} }
+  .foot { animation: foot-step 1.6s ease-in-out infinite; }
+  @keyframes pain-flash { 0%,55%{opacity:0;} 65%{opacity:1;} 100%{opacity:0;} }
+  .pain { animation: pain-flash 1.6s ease-out infinite; }
+
+  /* 11 — Proyección de fragmentos */
+  @keyframes frag1 { 0%{transform:translate(0,0);opacity:1;} 100%{transform:translate(-32px,-24px);opacity:0;} }
+  @keyframes frag2 { 0%{transform:translate(0,0);opacity:1;} 100%{transform:translate(30px,-18px);opacity:0;} }
+  @keyframes frag3 { 0%{transform:translate(0,0);opacity:1;} 100%{transform:translate(10px,-38px);opacity:0;} }
+  @keyframes frag4 { 0%{transform:translate(0,0);opacity:1;} 100%{transform:translate(-20px,20px);opacity:0;} }
+  .fr1 { animation: frag1 1.4s ease-out infinite; }
+  .fr2 { animation: frag2 1.4s ease-out infinite 0.15s; }
+  .fr3 { animation: frag3 1.4s ease-out infinite 0.05s; }
+  .fr4 { animation: frag4 1.4s ease-out infinite 0.25s; }
+  @keyframes boom { 0%{transform:scale(0);opacity:0;} 30%{transform:scale(1);opacity:1;} 100%{transform:scale(1.4);opacity:0;} }
+  .boom { animation: boom 1.4s ease-out infinite; transform-origin: 55px 60px; }
+
+  /* 12 — Sobreesfuerzo: mala postura, peso excesivo, zona lumbar */
+  @keyframes objeto-tiembla {
+    0%,28%,100%{ transform:translateX(0px);   }
+    32%  { transform:translateX(-2.5px); }
+    35%  { transform:translateX(2px);    }
+    38%  { transform:translateX(-2px);   }
+    41%  { transform:translateX(1.5px);  }
+    44%  { transform:translateX(0px);    }
+  }
+  @keyframes espalda-pulsa {
+    0%,22%  { opacity:0;    }
+    38%,62% { opacity:0.8;  }
+    78%,100%{ opacity:0;    }
+  }
+  @keyframes lineas-esfuerzo {
+    0%,20%  { opacity:0; transform:scaleX(0.4); }
+    36%     { opacity:1; transform:scaleX(1);   }
+    64%     { opacity:1; transform:scaleX(1);   }
+    78%,100%{ opacity:0; transform:scaleX(0.4); }
+  }
+  .objeto-pesado  { animation: objeto-tiembla 2.6s ease-in-out infinite; }
+  .zona-espalda   { animation: espalda-pulsa 2.6s ease-in-out infinite; }
+  .lineas-fuerza  { animation: lineas-esfuerzo 2.6s ease-in-out infinite; transform-origin: left center; }
+
+  /* ── PRIMER CARD CLICKABLE ── */
+  .card-clickable {
+    display: block;              /* <a> needs this to fill the full card area */
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    /* Ensure nothing inside blocks the touch area */
+    -webkit-touch-callout: none;
+  }
+  /* Active feedback on tap (works without JS/hover) */
+  .card-clickable:active {
+    border-color: var(--orange);
+    box-shadow: 0 0 20px rgba(255,98,0,0.35);
+  }
+  /* SVG/anim layer must never eat touch events */
+  .card-clickable .card-anim,
+  .card-clickable .card-anim * {
+    pointer-events: none;
+  }
+  .card-clickable .card-body::after {
+    content: '⚠ Toca para saber más';
+    display: block;
+    margin-top: 8px;
+    font-size: 0.62rem;
+    font-family: 'Barlow Condensed', sans-serif;
+    letter-spacing: 0.14em;
+    color: var(--orange-dim);
+    text-transform: uppercase;
+    animation: blink 1.8s step-start infinite;
+  }
+
+  /* ── MODAL OVERLAY ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    background: rgba(10, 6, 0, 0.92);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    align-items: flex-start;
+    justify-content: center;
+    padding: 16px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+  /* JS path — class added by script */
+  .modal-overlay.active {
+    display: flex;
+  }
+  /* CSS-only fallback — works even if JS is blocked (OneDrive, QR browsers) */
+  #modal-riesgo01:target {
+    display: flex;
+  }
+
+  .modal-box {
+    background: linear-gradient(160deg, #221508, #140c03);
+    border: 1.5px solid var(--orange);
+    border-radius: 6px;
+    width: 100%;
+    max-width: 480px;
+    max-height: calc(100dvh - 32px);    /* dvh for mobile browsers with toolbars */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 0 60px rgba(255,98,0,0.35), 0 0 120px rgba(255,98,0,0.12);
+    animation: modal-in 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    /* Needed so the box itself doesn't overflow its rounded corners */
+    flex-shrink: 0;
+    margin: auto;
+  }
+
+  @keyframes modal-in {
+    from { opacity: 0; transform: scale(0.85) translateY(20px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .modal-tape {
+    background: repeating-linear-gradient(
+      90deg,
+      var(--orange) 0px, var(--orange) 32px,
+      var(--dark) 32px, var(--dark) 64px
+    );
+    height: 10px;
+  }
+
+  .modal-anim-area {
+    width: 100%;
+    height: 190px;
+    background: #0D0800;
+    border-bottom: 1.5px solid rgba(255,98,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .modal-body {
+    padding: 18px 20px 20px;
+  }
+
+  .modal-tag {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.72rem;
+    color: var(--orange);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem;
+    color: var(--white);
+    letter-spacing: 0.06em;
+    line-height: 1.1;
+    margin: 4px 0 12px;
+    text-shadow: 0 0 14px rgba(255,98,0,0.4);
+  }
+
+  .modal-text {
+    font-family: 'Barlow', sans-serif;
+    font-size: 0.82rem;
+    color: rgba(245,239,224,0.72);
+    line-height: 1.65;
+  }
+
+  .modal-text strong {
+    color: var(--orange-hot);
+    font-weight: 700;
+  }
+
+  .modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 16px auto 0;
+    padding: 10px 32px;
+    min-height: 48px;
+    width: fit-content;
+    background: transparent;
+    border: 1.5px solid var(--orange);
+    border-radius: 3px;
+    color: var(--orange);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-decoration: none;              /* for <a> variant */
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s, color 0.15s;
+  }
+  .modal-close:active,
+  .modal-close:hover {
+    background: var(--orange);
+    color: var(--dark);
+  }
+
+  /* ── CRANE ANIMATION ── */
+  /* Trolley slides left-right on the beam */
+  @keyframes trolley-move {
+    0%   { transform: translateX(0px);  }
+    40%  { transform: translateX(60px); }
+    60%  { transform: translateX(60px); }
+    100% { transform: translateX(0px);  }
+  }
+  .crane-trolley { animation: trolley-move 4s ease-in-out infinite; }
+
+  /* Hook cable grows then snaps */
+  @keyframes cable-pay {
+    0%,30%  { transform: scaleY(1); }
+    55%,60% { transform: scaleY(2.1); }
+    65%     { transform: scaleY(2.1); }
+    100%    { transform: scaleY(1); }
+  }
+  .crane-cable { /* static — only the roller falls */ }
+
+  /* Object: tracks trolley horizontally, then falls straight down */
+  @keyframes roller-drop {
+    0%       { transform: translate(0px,   0px); opacity: 1; }
+    40%      { transform: translate(60px,  0px); opacity: 1; }
+    58%      { transform: translate(60px,  0px); opacity: 1; }
+    90%      { transform: translate(60px, 68px); opacity: 1; }
+    95%,100% { transform: translate(60px, 68px); opacity: 0; }
+  }
+  .crane-obj { animation: roller-drop 4s ease-in-out infinite; }
+
+  /* Impact flash on floor */
+  @keyframes impact-floor {
+    0%,85%  { opacity: 0; transform: scale(0.4); }
+    90%     { opacity: 1; transform: scale(1);   }
+    100%    { opacity: 0; transform: scale(1.4); }
+  }
+  .crane-impact { animation: impact-floor 4s ease-out infinite; transform-origin: 50% 50%; }
+
+  /* Danger zone pulse */
+  @keyframes zone-pulse {
+    0%,100% { opacity: 0.25; }
+    50%     { opacity: 0.55; }
+  }
+  .danger-zone { animation: zone-pulse 1.8s ease-in-out infinite; }
+
+  /* Warning sparks at fall zone */
+  @keyframes spark-a { 0%,84%{opacity:0;} 88%{opacity:1; transform:translate(0,0);} 100%{opacity:0; transform:translate(-10px,-12px);} }
+  @keyframes spark-b { 0%,84%{opacity:0;} 90%{opacity:1; transform:translate(0,0);} 100%{opacity:0; transform:translate(12px,-8px);}  }
+  .sp-a { animation: spark-a 4s ease-out infinite; }
+  .sp-b { animation: spark-b 4s ease-out infinite; }
+  /* ── RESPONSIVE: small screens ── */
+  @media (max-width: 480px) {
+    .hazard-badge { width: 52px; height: 52px; }
+    .header-inner { gap: 12px; padding: 14px 16px 12px; }
+    .header-text h1 { font-size: 1.7rem; }
+    .header-text h2 { font-size: 1rem; }
+    .section-label { padding: 22px 16px 8px; }
+    .grid { padding: 14px 12px 32px; gap: 12px; }
+    .card-anim { height: 170px; }
+    .card-body { padding: 12px 14px 14px; }
+    .modal-anim-area { height: 160px; }
+    .modal-body { padding: 14px 16px 16px; }
+    .modal-title { font-size: 1.25rem; }
+    footer { padding: 14px 16px; flex-direction: column; align-items: flex-start; gap: 4px; }
+  }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="warning-tape"></div>
+  <div class="header-inner">
+    <!-- Hazard triangle badge -->
+    <svg class="hazard-badge" viewBox="0 0 100 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="50,4 96,86 4,86" fill="#FF6200" stroke="#FF8C00" stroke-width="2"/>
+      <text x="50" y="72" font-family="Arial Black" font-size="48" fill="#1A1208" text-anchor="middle" font-weight="900">!</text>
+    </svg>
+    <div class="header-text">
+      <h1>Taller de Rodillos</h1>
+      <h2>Área de Rectificadora</h2>
+      <p>Identificación de riesgos &nbsp;|&nbsp; Ternium Monterrey &nbsp;|&nbsp; <span class="blink">ZONA DE PELIGRO</span></p>
+    </div>
+  </div>
+  <div class="warning-tape"></div>
+</header>
+
+<div class="section-label">
+  <h3>Riesgos <span>Identificados</span> en el Área</h3>
+  <div class="divider"></div>
+</div>
+
+<div class="grid">
+
+  <!-- ③  CAÍDA DE OBJETOS EN MANIPULACIÓN -->
+  <a  class="card card-clickable"
+      id="card-riesgo01"
+      href="#modal-riesgo01"
+      role="button"
+      tabindex="0"
+      aria-label="Riesgo 01: Caída de objetos, toca para más información">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Shelf -->
+        <rect x="20" y="28" width="70" height="5" rx="2" fill="#FF6200" opacity="0.7"/>
+        <rect x="20" y="28" width="4" height="60" rx="1" fill="#FF6200" opacity="0.5"/>
+        <rect x="86" y="28" width="4" height="60" rx="1" fill="#FF6200" opacity="0.5"/>
+        <!-- Falling roller -->
+        <g class="falling">
+          <ellipse cx="55" cy="22" rx="14" ry="8" fill="#FF6200"/>
+          <rect x="41" y="22" width="28" height="16" rx="2" fill="#C44A00"/>
+          <ellipse cx="55" cy="38" rx="14" ry="8" fill="#FF8C00"/>
+        </g>
+        <!-- Person below -->
+        <circle cx="55" cy="74" r="7" fill="#F5EFE0"/>
+        <line x1="55" y1="81" x2="55" y2="98" stroke="#F5EFE0" stroke-width="3.5"/>
+        <line x1="45" y1="88" x2="55" y2="84" stroke="#F5EFE0" stroke-width="2.5"/>
+        <line x1="55" y1="84" x2="65" y2="88" stroke="#F5EFE0" stroke-width="2.5"/>
+        <line x1="55" y1="98" x2="49" y2="107" stroke="#F5EFE0" stroke-width="2.5"/>
+        <line x1="55" y1="98" x2="61" y2="107" stroke="#F5EFE0" stroke-width="2.5"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 01</div>
+      <div class="risk-title">Caída de objetos en manipulación</div>
+      <div class="risk-sub">Rodillos y herramientas pesadas pueden caer durante su traslado o almacenamiento.</div>
+      <span class="risk-tag">📦 Gravitacional</span>
+    </div>
+  </a>
+
+  <!-- ①  ATRAPAMIENTO -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Gear A -->
+        <g class="gear-a">
+          <circle cx="38" cy="55" r="18" fill="none" stroke="#FF6200" stroke-width="3"/>
+          <circle cx="38" cy="55" r="8" fill="#FF6200" opacity="0.4"/>
+          <rect x="35" y="32" width="6" height="10" rx="2" fill="#FF6200"/>
+          <rect x="35" y="68" width="6" height="10" rx="2" fill="#FF6200"/>
+          <rect x="15" y="52" width="10" height="6" rx="2" fill="#FF6200"/>
+          <rect x="51" y="52" width="10" height="6" rx="2" fill="#FF6200"/>
+          <rect x="20" y="37" width="7" height="7" rx="2" fill="#FF6200" transform="rotate(45 23.5 40.5)"/>
+          <rect x="52" y="37" width="7" height="7" rx="2" fill="#FF6200" transform="rotate(45 55.5 40.5)"/>
+          <rect x="20" y="66" width="7" height="7" rx="2" fill="#FF6200" transform="rotate(45 23.5 69.5)"/>
+          <rect x="52" y="66" width="7" height="7" rx="2" fill="#FF6200" transform="rotate(45 55.5 69.5)"/>
+        </g>
+        <!-- Gear B -->
+        <g class="gear-b">
+          <circle cx="72" cy="55" r="14" fill="none" stroke="#FF8C00" stroke-width="2.5"/>
+          <circle cx="72" cy="55" r="6" fill="#FF8C00" opacity="0.4"/>
+          <rect x="69" y="37" width="6" height="8" rx="2" fill="#FF8C00"/>
+          <rect x="69" y="65" width="6" height="8" rx="2" fill="#FF8C00"/>
+          <rect x="54" y="52" width="8" height="6" rx="2" fill="#FF8C00"/>
+          <rect x="82" y="52" width="8" height="6" rx="2" fill="#FF8C00"/>
+          <rect x="57" y="41" width="6" height="6" rx="2" fill="#FF8C00" transform="rotate(45 60 44)"/>
+          <rect x="80" y="41" width="6" height="6" rx="2" fill="#FF8C00" transform="rotate(45 83 44)"/>
+          <rect x="57" y="63" width="6" height="6" rx="2" fill="#FF8C00" transform="rotate(45 60 66)"/>
+          <rect x="80" y="63" width="6" height="6" rx="2" fill="#FF8C00" transform="rotate(45 83 66)"/>
+        </g>
+        <!-- Hand approaching -->
+        <g class="hand-svg">
+          <rect x="0" y="52" width="22" height="6" rx="3" fill="#F5EFE0" opacity="0.85"/>
+          <rect x="4" y="44" width="5" height="12" rx="2.5" fill="#F5EFE0" opacity="0.85"/>
+          <rect x="10" y="42" width="5" height="14" rx="2.5" fill="#F5EFE0" opacity="0.85"/>
+          <rect x="16" y="43" width="5" height="13" rx="2.5" fill="#F5EFE0" opacity="0.85"/>
+        </g>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 02</div>
+      <div class="risk-title">Atrapamiento por o entre objetos</div>
+      <div class="risk-sub">Engranajes, rodillos y partes móviles de la rectificadora pueden atrapar extremidades.</div>
+      <span class="risk-tag">⚙ Mecánico</span>
+    </div>
+  </div>
+
+  <!-- ⑪  PROYECCIÓN DE FRAGMENTOS -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Explosion center -->
+        <g class="boom">
+          <circle cx="55" cy="60" r="12" fill="#FF6200" opacity="0.6"/>
+          <circle cx="55" cy="60" r="7" fill="#FFD700" opacity="0.7"/>
+        </g>
+        <!-- Fragments -->
+        <polygon class="fr1" points="55,60 51,52 59,52" fill="#FF8C00"/>
+        <polygon class="fr2" points="55,60 63,56 63,64" fill="#FF6200"/>
+        <polygon class="fr3" points="55,60 51,56 51,64" fill="#FF8C00"/>
+        <polygon class="fr4" points="55,60 59,64 51,66" fill="#FFD700"/>
+        <!-- Disc silhouette -->
+        <circle cx="55" cy="60" r="22" fill="none" stroke="#C44A00" stroke-width="2" stroke-dasharray="5 3" opacity="0.5"/>
+        <!-- Flying sparks trail -->
+        <circle cx="30" cy="38" r="2" fill="#FFD700" opacity="0.7"/>
+        <circle cx="22" cy="32" r="1.5" fill="#FF8C00" opacity="0.5"/>
+        <circle cx="82" cy="34" r="2.5" fill="#FFD700" opacity="0.7"/>
+        <circle cx="90" cy="28" r="1.5" fill="#FF8C00" opacity="0.5"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 03</div>
+      <div class="risk-title">Proyección de fragmentos o partículas</div>
+      <div class="risk-sub">Rotura o desintegración del disco abrasivo puede proyectar fragmentos a alta velocidad.</div>
+      <span class="risk-tag">💥 Proyección</span>
+    </div>
+  </div>
+
+  <!-- ⑥  CONTACTO CORTANTE/ABRASIVO -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Grinding disc -->
+        <g class="grind-disc">
+          <circle cx="55" cy="60" r="28" fill="none" stroke="#FF6200" stroke-width="6"/>
+          <circle cx="55" cy="60" r="20" fill="none" stroke="#C44A00" stroke-width="3" stroke-dasharray="8 4"/>
+          <circle cx="55" cy="60" r="5" fill="#FF6200"/>
+          <line x1="55" y1="32" x2="55" y2="88" stroke="#FF6200" stroke-width="2" opacity="0.5"/>
+          <line x1="27" y1="60" x2="83" y2="60" stroke="#FF6200" stroke-width="2" opacity="0.5"/>
+        </g>
+        <!-- Sparks -->
+        <line class="sp sp1" x1="75" y1="74" x2="82" y2="76" stroke="#FFD700" stroke-width="2"/>
+        <line class="sp sp2" x1="75" y1="74" x2="86" y2="72" stroke="#FFB300" stroke-width="2"/>
+        <line class="sp sp3" x1="75" y1="74" x2="80" y2="84" stroke="#FF8C00" stroke-width="2"/>
+        <circle class="sp sp4" cx="78" cy="68" r="2" fill="#FFD700"/>
+        <circle class="sp sp5" cx="82" cy="80" r="1.5" fill="#FF8C00"/>
+        <!-- Workpiece -->
+        <rect x="10" y="55" width="20" height="14" rx="2" fill="#F5EFE0" opacity="0.6"/>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 04</div>
+      <div class="risk-title">Contacto con elementos punzante, cortante y/o abrasivos</div>
+      <div class="risk-sub">Disco de rectificado en operación y virutas metálicas filosas en el área.</div>
+      <span class="risk-tag">⚡ Abrasivo</span>
+    </div>
+  </div>
+
+  <!-- ⑨  GOLPE POR HERRAMIENTA -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Workbench surface -->
+        <rect x="8" y="78" width="94" height="8" rx="2" fill="#C44A00" opacity="0.9"/>
+        <rect x="8" y="78" width="94" height="3" rx="1" fill="#FF6200" opacity="0.7"/>
+        <!-- Warning notches on bench edge -->
+        <rect x="14" y="76" width="8" height="3" rx="1" fill="#FFD700" opacity="0.5"/>
+        <rect x="34" y="76" width="8" height="3" rx="1" fill="#FFD700" opacity="0.5"/>
+        <rect x="54" y="76" width="8" height="3" rx="1" fill="#FFD700" opacity="0.5"/>
+        <rect x="74" y="76" width="8" height="3" rx="1" fill="#FFD700" opacity="0.5"/>
+        <!-- Workpiece (metal part on bench) -->
+        <g class="pieza-metal">
+          <rect x="30" y="65" width="50" height="13" rx="2" fill="#F5EFE0" opacity="0.7"/>
+          <rect x="36" y="61" width="12" height="5" rx="1" fill="#C44A00" opacity="0.85"/>
+          <rect x="62" y="61" width="12" height="5" rx="1" fill="#C44A00" opacity="0.85"/>
+          <line x1="55" y1="65" x2="55" y2="78" stroke="#C44A00" stroke-width="1.5" opacity="0.4"/>
+        </g>
+        <!-- Motion trail: head travels upper-right → lower-left -->
+        <g class="motion-trail">
+          <path d="M86,22 Q70,40 54,60" stroke="#FF8C00" stroke-width="2" fill="none"
+                stroke-dasharray="4 3" opacity="0.65"/>
+          <path d="M92,16 Q76,38 60,62" stroke="#FF8C00" stroke-width="1.2" fill="none"
+                stroke-dasharray="3 3" opacity="0.4"/>
+        </g>
+        <!-- Hammer group — pivot at (58,16) = top grip point
+             Handle: y=16→54  Head (striking face): y=54→70
+             At +22° head bottom reaches y≈66, touching the workpiece. -->
+        <g class="hammer">
+          <!-- Handle (gripped at top, y=16 to y=54) -->
+          <rect x="55" y="16" width="7" height="38" rx="3" fill="#C44A00"/>
+          <!-- Grip wrap detail -->
+          <rect x="55" y="42" width="7" height="8" rx="2" fill="#FF8C00" opacity="0.55"/>
+          <!-- Head at BOTTOM — this is the striking face -->
+          <rect x="43" y="54" width="30" height="16" rx="3" fill="#FF6200"/>
+          <!-- Top face of head (highlight) -->
+          <rect x="43" y="54" width="30" height="5"  rx="2" fill="#FF8C00" opacity="0.55"/>
+          <!-- Texture grooves on head -->
+          <line x1="53" y1="56" x2="53" y2="68" stroke="#C44A00" stroke-width="2" opacity="0.5"/>
+          <line x1="63" y1="56" x2="63" y2="68" stroke="#C44A00" stroke-width="2" opacity="0.5"/>
+          <!-- Metal shine on head -->
+          <rect x="45" y="55" width="6" height="3" rx="1" fill="#FFD700" opacity="0.25"/>
+        </g>
+        <!-- Impact burst — centered at contact zone (~46,65) -->
+        <g class="stars">
+          <line x1="46" y1="65" x2="38" y2="53" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="46" y1="65" x2="56" y2="53" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="46" y1="65" x2="34" y2="60" stroke="#FFD700" stroke-width="2"/>
+          <line x1="46" y1="65" x2="60" y2="61" stroke="#FFD700" stroke-width="2"/>
+          <line x1="46" y1="65" x2="46" y2="50" stroke="#FFD700" stroke-width="2"/>
+          <circle cx="46" cy="65" r="5" fill="#FF6200" opacity="0.55"/>
+          <circle cx="38" cy="51" r="2.5" fill="#FFD700" opacity="0.9"/>
+          <circle cx="56" cy="51" r="2"   fill="#FFD700" opacity="0.9"/>
+        </g>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 05</div>
+      <div class="risk-title">Golpes por objetos o herramientas</div>
+      <div class="risk-sub">Uso de mazos, llaves y herramientas en montaje o desmontaje de rodillos.</div>
+      <span class="risk-tag">🔨 Herramienta</span>
+    </div>
+  </div>
+
+  <!-- ⑦  SUSTANCIAS QUÍMICAS -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Container -->
+        <rect x="35" y="40" width="28" height="36" rx="4" fill="#C44A00" opacity="0.8"/>
+        <rect x="39" y="34" width="20" height="8" rx="3" fill="#FF6200"/>
+        <!-- Splash -->
+        <g class="chem-splash">
+          <ellipse cx="55" cy="74" rx="20" ry="8" fill="#FF8C00" opacity="0.5"/>
+          <polygon points="55,74 42,58 40,74" fill="#FF8C00" opacity="0.5"/>
+          <polygon points="55,74 68,58 70,74" fill="#FF8C00" opacity="0.5"/>
+          <polygon points="55,74 55,52 50,62" fill="#FFD700" opacity="0.4"/>
+        </g>
+        <!-- Drips -->
+        <circle class="drip" cx="46" cy="76" r="3" fill="#FF8C00" opacity="0.8" style="animation-delay:0s"/>
+        <circle class="drip" cx="62" cy="76" r="2.5" fill="#FF8C00" opacity="0.8" style="animation-delay:0.4s"/>
+        <!-- Skull on label -->
+        <text x="49" y="62" font-size="14" fill="#1A1208" font-weight="900">☠</text>
+        <!-- Warning -->
+        <text x="55" y="20" font-size="9" fill="#FF6200" text-anchor="middle" font-family="monospace" opacity="0.7">TÓXICO</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 06</div>
+      <div class="risk-title">Contacto con sustancias químicas peligrosas</div>
+      <div class="risk-sub">Fluidos de corte, refrigerantes y lubricantes con propiedades nocivas para piel y vías respiratorias.</div>
+      <span class="risk-tag">☠ Químico</span>
+    </div>
+  </div>
+
+  <!-- ⑫  SOBREESFUERZO FÍSICO -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Floor line -->
+        <rect x="0" y="90" width="110" height="4" fill="#FF6200" opacity="0.28"/>
+
+        <!-- Heavy roller on floor (left side) -->
+        <g class="objeto-pesado">
+          <ellipse cx="30" cy="86" rx="16" ry="5"   fill="#FF6200"  opacity="0.65"/>
+          <rect    x="14"  y="76" width="32" height="10" rx="2"  fill="#C44A00"/>
+          <ellipse cx="30" cy="76" rx="16" ry="5"   fill="#FF8C00"  opacity="0.85"/>
+          <text x="30" y="84" text-anchor="middle" font-size="6" fill="#F5EFE0"
+                font-family="monospace" font-weight="bold" opacity="0.9">▲120 kg</text>
+        </g>
+
+        <!--
+          Skeleton (person faces left, bends forward to lift):
+            Hip    (70,68) — single convergence point for both legs and torso
+            L-leg  (70,68)→(62,90)   R-leg (70,68)→(78,90)
+            Torso  (70,68)→(52,48)   — ~50° forward lean
+            Shoulder (52,48)
+            Head   (45,40) r=7       Hard hat on top
+            L-arm  (52,48)→(30,67)   R-arm (52,48)→(26,72)
+            Lumbar midpoint of torso ≈ (62,59)
+        -->
+
+        <!-- Legs: V-shape from single hip point -->
+        <line x1="70" y1="68" x2="62" y2="90" stroke="#F5EFE0" stroke-width="3.5"/>
+        <line x1="70" y1="68" x2="78" y2="90" stroke="#F5EFE0" stroke-width="3.5"/>
+        <!-- Feet stubs -->
+        <line x1="62" y1="90" x2="55" y2="90" stroke="#F5EFE0" stroke-width="3"/>
+        <line x1="78" y1="90" x2="85" y2="90" stroke="#F5EFE0" stroke-width="3"/>
+
+        <!-- Torso: hip → shoulder (forward lean) -->
+        <line x1="70" y1="68" x2="52" y2="48" stroke="#F5EFE0" stroke-width="4.5"/>
+
+        <!-- Lumbar pain zone -->
+        <ellipse class="zona-espalda" cx="62" cy="59" rx="9" ry="6"
+                 fill="#FF2200" opacity="0"/>
+
+        <!-- Head -->
+        <circle cx="45" cy="40" r="7" fill="#F5EFE0"/>
+        <!-- Hard hat -->
+        <ellipse cx="45" cy="35" rx="9.5" ry="4.5" fill="#FF6200"/>
+        <rect    x="35"  y="35" width="20"  height="3"  rx="1" fill="#FF8C00" opacity="0.55"/>
+
+        <!-- Arms: from shoulder → down to object -->
+        <line x1="52" y1="48" x2="30" y2="67" stroke="#F5EFE0" stroke-width="3"/>
+        <line x1="52" y1="48" x2="26" y2="72" stroke="#F5EFE0" stroke-width="3"/>
+
+        <!-- Strain / effort lines near hands -->
+        <g class="lineas-fuerza">
+          <line x1="27" y1="63" x2="16" y2="56" stroke="#FF6200" stroke-width="2" opacity="0.85"/>
+          <line x1="26" y1="68" x2="14" y2="67" stroke="#FF6200" stroke-width="2" opacity="0.85"/>
+          <line x1="27" y1="73" x2="15" y2="77" stroke="#FF6200" stroke-width="2" opacity="0.85"/>
+        </g>
+
+        <!-- Warning label (right margin) -->
+        <text x="100" y="36" text-anchor="middle" font-size="12" fill="#FFD700" opacity="0.8">⚠</text>
+        <text x="100" y="49" text-anchor="middle" font-size="5.5" fill="#FF8C00"
+              font-family="monospace" opacity="0.75">ZONA</text>
+        <text x="100" y="57" text-anchor="middle" font-size="5.5" fill="#FF8C00"
+              font-family="monospace" opacity="0.75">LUMBAR</text>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 07</div>
+      <div class="risk-title">Sobre esfuerzo físico</div>
+      <div class="risk-sub">Manipulación manual de rodillos de gran peso sin ayuda mecánica o posturas inadecuadas.</div>
+      <span class="risk-tag">💪 Ergonómico</span>
+    </div>
+  </div>
+
+  <!-- ⑤  CAÍDA MISMO NIVEL -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Floor -->
+        <rect x="0" y="82" width="110" height="6" rx="0" fill="#FF6200" opacity="0.4"/>
+        <!-- Oil/liquid patch -->
+        <ellipse cx="60" cy="82" rx="26" ry="5" fill="#C44A00" opacity="0.6"/>
+        <text x="60" y="85" font-size="9" fill="#FF8C00" text-anchor="middle" font-family="monospace">GRASA</text>
+        <!-- Slipping person -->
+        <g class="person-slip">
+          <circle cx="52" cy="38" r="7" fill="#F5EFE0"/>
+          <line x1="52" y1="45" x2="52" y2="64" stroke="#F5EFE0" stroke-width="3.5"/>
+          <line x1="44" y1="52" x2="52" y2="48" stroke="#F5EFE0" stroke-width="2.5"/>
+          <line x1="52" y1="48" x2="60" y2="52" stroke="#F5EFE0" stroke-width="2.5"/>
+          <line x1="52" y1="64" x2="40" y2="76" stroke="#F5EFE0" stroke-width="2.5"/>
+          <line x1="52" y1="64" x2="62" y2="74" stroke="#F5EFE0" stroke-width="2.5"/>
+        </g>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 08</div>
+      <div class="risk-title">Caída de persona en el mismo nivel</div>
+      <div class="risk-sub">Pisos resbaladizos por aceite de corte o refrigerante derramado.</div>
+      <span class="risk-tag">💧 Resbalón</span>
+    </div>
+  </div>
+
+  <!-- ⑩  PISADA SOBRE OBJETOS -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Floor -->
+        <rect x="0" y="84" width="110" height="8" rx="0" fill="#FF6200" opacity="0.3"/>
+        <!-- Scattered debris -->
+        <polygon points="52,84 48,76 56,76" fill="#FF8C00" opacity="0.9"/>
+        <polygon points="68,84 64,78 72,78" fill="#FF8C00" opacity="0.7"/>
+        <rect x="28" y="80" width="10" height="4" rx="1" fill="#C44A00" transform="rotate(-20 33 82)"/>
+        <!-- Foot -->
+        <g class="foot">
+          <ellipse cx="55" cy="70" rx="14" ry="8" fill="#F5EFE0" opacity="0.85"/>
+          <rect x="41" y="60" width="10" height="14" rx="3" fill="#F5EFE0" opacity="0.85"/>
+        </g>
+        <!-- Pain flash -->
+        <g class="pain">
+          <line x1="50" y1="68" x2="44" y2="58" stroke="#FFD700" stroke-width="2"/>
+          <line x1="50" y1="68" x2="42" y2="66" stroke="#FFD700" stroke-width="2"/>
+          <text x="38" y="56" font-size="12" fill="#FFD700">★</text>
+        </g>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 09</div>
+      <div class="risk-title">Pisada sobre objetos</div>
+      <div class="risk-sub">Virutas, insertos y fragmentos metálicos en el piso alrededor de la rectificadora.</div>
+      <span class="risk-tag">🦶 Suelo</span>
+    </div>
+  </div>
+
+  <!-- ⑧  GOLPE CONTRA INMÓVILES -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Floor -->
+        <rect x="0" y="88" width="110" height="5" rx="0" fill="#FF6200" opacity="0.3"/>
+        <!-- Industrial column with warning diagonal stripes -->
+        <rect x="74" y="8" width="26" height="82" rx="2" fill="#1E0D04" stroke="#C44A00" stroke-width="1.5"/>
+        <!-- Diagonal warning stripes on column -->
+        <line x1="74" y1="12" x2="100" y2="38" stroke="#FF6200" stroke-width="3.5" opacity="0.65"/>
+        <line x1="74" y1="28" x2="100" y2="54" stroke="#FF6200" stroke-width="3.5" opacity="0.65"/>
+        <line x1="74" y1="44" x2="100" y2="70" stroke="#FF6200" stroke-width="3.5" opacity="0.65"/>
+        <line x1="74" y1="60" x2="100" y2="86" stroke="#FF6200" stroke-width="3.5" opacity="0.65"/>
+        <line x1="74" y1="76" x2="96" y2="98" stroke="#FF6200" stroke-width="3.5" opacity="0.65"/>
+        <!-- Column edges -->
+        <line x1="74"  y1="8" x2="74"  y2="90" stroke="#FF8C00" stroke-width="2"   opacity="0.6"/>
+        <line x1="100" y1="8" x2="100" y2="90" stroke="#FF8C00" stroke-width="1.5" opacity="0.35"/>
+        <!-- Bracket cap -->
+        <rect x="70" y="6" width="34" height="6" rx="2" fill="#FF6200" opacity="0.8"/>
+        <!-- Walking person -->
+        <g class="walker">
+          <!-- Head with hard hat (separate for shake) -->
+          <g class="head-knock">
+            <circle cx="20" cy="34" r="7.5" fill="#F5EFE0"/>
+            <ellipse cx="20" cy="29" rx="10" ry="4.5" fill="#FF6200"/>
+            <rect x="10" y="29" width="20" height="3" rx="1" fill="#FF8C00" opacity="0.55"/>
+          </g>
+          <!-- Torso -->
+          <line x1="20" y1="42" x2="20" y2="62" stroke="#F5EFE0" stroke-width="4"/>
+          <!-- Arms swinging (walking) -->
+          <line x1="20" y1="50" x2="11" y2="60" stroke="#F5EFE0" stroke-width="2.5"/>
+          <line x1="20" y1="50" x2="29" y2="57" stroke="#F5EFE0" stroke-width="2.5"/>
+          <!-- Legs stride -->
+          <line x1="20" y1="62" x2="13" y2="78" stroke="#F5EFE0" stroke-width="3"/>
+          <line x1="20" y1="62" x2="28" y2="78" stroke="#F5EFE0" stroke-width="3"/>
+        </g>
+        <!-- Impact burst (at head-column contact zone) -->
+        <g class="impact">
+          <line x1="70" y1="36" x2="62" y2="24" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="70" y1="36" x2="78" y2="24" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="70" y1="36" x2="60" y2="32" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="70" y1="36" x2="62" y2="46" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="70" y1="36" x2="72" y2="24" stroke="#FFD700" stroke-width="2"/>
+          <circle cx="70" cy="36" r="5.5" fill="#FF6200" opacity="0.5"/>
+          <text x="70" y="20" text-anchor="middle" font-size="11" fill="#FFD700">★</text>
+        </g>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 10</div>
+      <div class="risk-title">Golpe contra objetos inmóviles</div>
+      <div class="risk-sub">Estructuras de máquinas, columnas y equipos en pasillos con espacio reducido.</div>
+      <span class="risk-tag">💥 Impacto</span>
+    </div>
+  </div>
+
+  <!-- ④  CAÍDA A DISTINTO NIVEL -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Platform surface -->
+        <rect x="6" y="55" width="62" height="8"  rx="2" fill="#C44A00"/>
+        <rect x="6" y="55" width="62" height="3"  rx="1" fill="#FF6200" opacity="0.9"/>
+        <!-- Edge warning stripe (yellow at the gap) -->
+        <rect x="54" y="55" width="14" height="3" rx="0" fill="#FFD700" opacity="0.6"/>
+        <!-- Platform support columns -->
+        <rect x="6"  y="63" width="8" height="32" rx="1" fill="#C44A00" opacity="0.75"/>
+        <rect x="30" y="63" width="6" height="32" rx="1" fill="#C44A00" opacity="0.55"/>
+        <!-- Railing posts (last missing = hazard) -->
+        <rect x="8"  y="40" width="3.5" height="17" rx="1" fill="#FF8C00"/>
+        <rect x="30" y="40" width="3.5" height="17" rx="1" fill="#FF8C00"/>
+        <rect x="52" y="40" width="3.5" height="17" rx="1" fill="#FF8C00"/>
+        <!-- Handrail (stops at x=54, missing last section) -->
+        <line x1="8" y1="42" x2="54" y2="42" stroke="#FF8C00" stroke-width="3"/>
+        <!-- Broken stub -->
+        <line x1="54" y1="42" x2="60" y2="45" stroke="#C44A00" stroke-width="2" opacity="0.6"/>
+        <!-- Gap arrow -->
+        <text x="68" y="54" text-anchor="middle" font-size="9"
+              fill="#FFD700" opacity="0.9" font-family="monospace">↓</text>
+        <!-- Height dimension line -->
+        <line x1="76" y1="55" x2="76" y2="96"
+              stroke="#FF8C00" stroke-width="1" stroke-dasharray="3,3" opacity="0.45"/>
+        <line x1="72" y1="55" x2="80" y2="55" stroke="#FF8C00" stroke-width="1.5" opacity="0.45"/>
+        <line x1="72" y1="96" x2="80" y2="96" stroke="#FF8C00" stroke-width="1.5" opacity="0.45"/>
+        <!-- Ground / fosa -->
+        <line x1="0" y1="96" x2="110" y2="96"
+              stroke="#FF6200" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.55"/>
+        <text x="96" y="106" text-anchor="middle" font-size="6"
+              fill="#FF6200" font-family="monospace" opacity="0.75">⚠ FOSA</text>
+        <!-- Falling person (transform-origin at feet/edge) -->
+        <g class="person-fall">
+          <circle cx="46" cy="30" r="7.5" fill="#F5EFE0"/>
+          <ellipse cx="46" cy="25" rx="9" ry="4.5" fill="#FF6200"/>
+          <line x1="46" y1="38" x2="46" y2="55" stroke="#F5EFE0" stroke-width="4"/>
+          <line x1="46" y1="44" x2="36" y2="52" stroke="#F5EFE0" stroke-width="2.5"/>
+          <line x1="46" y1="44" x2="57" y2="38" stroke="#F5EFE0" stroke-width="2.5"/>
+          <line x1="46" y1="55" x2="40" y2="66" stroke="#F5EFE0" stroke-width="3"/>
+          <line x1="46" y1="55" x2="53" y2="66" stroke="#F5EFE0" stroke-width="3"/>
+        </g>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 11</div>
+      <div class="risk-title">Caída de persona a distinto nivel</div>
+      <div class="risk-sub">Plataformas elevadas y fosas de inspección sin protección adecuada.</div>
+      <span class="risk-tag">🪜 Altura</span>
+    </div>
+  </div>
+
+  <!-- ②  ATROPELLAMIENTO -->
+  <div class="card">
+    <div class="card-anim">
+      <svg viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+        <!-- Road surface -->
+        <rect x="0" y="72" width="110" height="22" rx="0" fill="#0D0800" opacity="0.7"/>
+        <!-- Shoulder line -->
+        <line x1="0" y1="72" x2="110" y2="72" stroke="#FF6200" stroke-width="1.5" opacity="0.55"/>
+        <!-- Lane center dashed marking -->
+        <line x1="0" y1="83" x2="110" y2="83"
+              stroke="#FFD700" stroke-width="1.5" stroke-dasharray="12,7" opacity="0.45"/>
+        <!-- Ground / lower edge -->
+        <rect x="0" y="94" width="110" height="4" rx="0" fill="#FF6200" opacity="0.25"/>
+
+        <!-- Impact flash — radiating lines at collision point -->
+        <g class="zona-choque" style="transform-box:fill-box; transform-origin:center;">
+          <line x1="76" y1="62" x2="68" y2="50" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="76" y1="62" x2="86" y2="50" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="76" y1="62" x2="64" y2="58" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="76" y1="62" x2="88" y2="56" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="76" y1="62" x2="76" y2="48" stroke="#FFD700" stroke-width="2.5"/>
+          <line x1="76" y1="62" x2="66" y2="70" stroke="#FFD700" stroke-width="2"/>
+          <line x1="76" y1="62" x2="86" y2="70" stroke="#FFD700" stroke-width="2"/>
+          <circle cx="76" cy="62" r="6" fill="#FF6200" opacity="0.55"/>
+          <text x="76" y="45" text-anchor="middle" font-size="11" fill="#FFD700">★</text>
+        </g>
+
+        <!-- Forklift group — moves left to right -->
+        <g class="montacargas">
+          <!-- Motion trail (ghost behind vehicle) -->
+          <g class="rastro">
+            <rect x="-36" y="54" width="34" height="18" rx="2" fill="#FF6200" opacity="0.12"/>
+            <rect x="-52" y="54" width="34" height="18" rx="2" fill="#FF6200" opacity="0.06"/>
+          </g>
+          <!-- Counterweight -->
+          <rect x="0" y="60" width="9" height="14" rx="2" fill="#C44A00"/>
+          <!-- Main body -->
+          <rect x="8" y="54" width="38" height="20" rx="3" fill="#FF6200"/>
+          <!-- Cabin -->
+          <rect x="12" y="44" width="20" height="12" rx="2" fill="#C44A00"/>
+          <!-- Cabin window -->
+          <rect x="15" y="46" width="12" height="7" rx="1" fill="#0D0800" opacity="0.75"/>
+          <!-- Operator head silhouette -->
+          <circle cx="22" cy="49" r="3" fill="#F5EFE0" opacity="0.45"/>
+          <!-- Exhaust pipe -->
+          <rect x="28" y="38" width="3" height="8" rx="1" fill="#C44A00"/>
+          <!-- Warning beacon (pulsing) -->
+          <circle class="baliza" cx="30" cy="36" r="5" fill="#FFD700"/>
+          <!-- Mast -->
+          <rect x="44" y="42" width="5" height="30" rx="1" fill="#FF8C00"/>
+          <!-- Forks -->
+          <rect x="49" y="59" width="20" height="3.5" rx="1" fill="#FF8C00"/>
+          <rect x="49" y="65" width="20" height="3.5" rx="1" fill="#FF8C00"/>
+          <!-- Wheels: animation on the <g> with transform-box:fill-box for correct pivot -->
+          <g class="rueda" style="transform-box:fill-box; transform-origin:center;">
+            <circle cx="14" cy="74" r="9" fill="#1A1208" stroke="#FF8C00" stroke-width="2.5"/>
+            <line x1="14" y1="65" x2="14" y2="83" stroke="#FF8C00" stroke-width="1.5"/>
+            <line x1="5"  y1="74" x2="23" y2="74" stroke="#FF8C00" stroke-width="1.5"/>
+            <line x1="8"  y1="67" x2="20" y2="81" stroke="#FF8C00" stroke-width="1.5"/>
+            <line x1="20" y1="67" x2="8"  y2="81" stroke="#FF8C00" stroke-width="1.5"/>
+          </g>
+          <g class="rueda" style="transform-box:fill-box; transform-origin:center;">
+            <circle cx="38" cy="74" r="9" fill="#1A1208" stroke="#FF8C00" stroke-width="2.5"/>
+            <line x1="38" y1="65" x2="38" y2="83" stroke="#FF8C00" stroke-width="1.5"/>
+            <line x1="29" y1="74" x2="47" y2="74" stroke="#FF8C00" stroke-width="1.5"/>
+            <line x1="32" y1="67" x2="44" y2="81" stroke="#FF8C00" stroke-width="1.5"/>
+            <line x1="44" y1="67" x2="32" y2="81" stroke="#FF8C00" stroke-width="1.5"/>
+          </g>
+        </g>
+
+        <!-- Person reacting to approaching vehicle -->
+        <g class="persona-react">
+          <!-- Body -->
+          <circle cx="88" cy="46" r="7.5" fill="#F5EFE0"/>
+          <!-- Hard hat -->
+          <ellipse cx="88" cy="41" rx="9.5" ry="4.5" fill="#FF6200"/>
+          <rect x="78" y="41" width="19" height="3" rx="1" fill="#FF8C00" opacity="0.55"/>
+          <!-- Torso -->
+          <line x1="88" y1="54" x2="88" y2="74" stroke="#F5EFE0" stroke-width="4"/>
+          <!-- Arms raised in alarm -->
+          <line x1="88" y1="60" x2="78" y2="52" stroke="#F5EFE0" stroke-width="2.5"/>
+          <line x1="88" y1="60" x2="98" y2="55" stroke="#F5EFE0" stroke-width="2.5"/>
+          <!-- Legs -->
+          <line x1="88" y1="74" x2="82" y2="90" stroke="#F5EFE0" stroke-width="3"/>
+          <line x1="88" y1="74" x2="94" y2="90" stroke="#F5EFE0" stroke-width="3"/>
+        </g>
+      </svg>
+    </div>
+    <div class="card-body">
+      <div class="risk-num">RIESGO 12</div>
+      <div class="risk-title">Atropellamiento por vehículo, equipo o máquina</div>
+      <div class="risk-sub">Tránsito de montacargas y equipos de acarreo en zonas de trabajo.</div>
+      <span class="risk-tag">🚜 Tránsito</span>
+    </div>
+  </div>
+
+</div><!-- /grid -->
+
+<!-- ══════════════════════════════════════════
+     MODAL — RIESGO 01: CAÍDA DE OBJETOS
+══════════════════════════════════════════ -->
+<div id="modal-riesgo01" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Información sobre caída de objetos">
+  <div class="modal-box">
+    <div class="modal-tape"></div>
+
+    <!-- Crane animation -->
+    <div class="modal-anim-area">
+      <svg viewBox="0 0 200 170" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+
+        <!-- Runway rails (top) -->
+        <rect x="0"   y="14" width="200" height="5" rx="2" fill="#FF6200" opacity="0.55"/>
+        <rect x="0"   y="10" width="200" height="3" rx="1" fill="#FF8C00" opacity="0.3"/>
+
+        <!-- End stops -->
+        <rect x="2"  y="8"  width="8" height="14" rx="2" fill="#C44A00"/>
+        <rect x="190" y="8"  width="8" height="14" rx="2" fill="#C44A00"/>
+
+        <!-- Danger zone on floor -->
+        <ellipse class="danger-zone" cx="118" cy="155" rx="34" ry="7" fill="#FF6200"/>
+        <text x="118" y="158" text-anchor="middle" font-size="7" fill="#F5EFE0" font-family="monospace" font-weight="bold" opacity="0.85">⚠ ZONA DE PELIGRO</text>
+
+        <!-- Person standing to the side (safe) -->
+        <g transform="translate(28, 100)">
+          <!-- body -->
+          <circle cx="0" cy="-22" r="6" fill="#F5EFE0"/>
+          <line x1="0" y1="-16" x2="0"  y2="2"  stroke="#F5EFE0" stroke-width="3"/>
+          <line x1="0" y1="-8"  x2="-8" y2="4"  stroke="#F5EFE0" stroke-width="2.2"/>
+          <line x1="0" y1="-8"  x2="8"  y2="2"  stroke="#F5EFE0" stroke-width="2.2"/>
+          <line x1="0" y1="2"   x2="-5" y2="14" stroke="#F5EFE0" stroke-width="2.2"/>
+          <line x1="0" y1="2"   x2="5"  y2="14" stroke="#F5EFE0" stroke-width="2.2"/>
+          <!-- hard hat -->
+          <ellipse cx="0" cy="-28" rx="8" ry="4" fill="#FF6200"/>
+          <rect x="-10" y="-28" width="20" height="3" rx="1" fill="#FF8C00" opacity="0.7"/>
+        </g>
+
+        <!-- Crane trolley group (slides on beam) -->
+        <g class="crane-trolley">
+
+          <!-- Bridge beam -->
+          <rect x="20" y="18" width="100" height="8" rx="2" fill="#C44A00"/>
+          <rect x="20" y="18" width="100" height="3" rx="1" fill="#FF8C00" opacity="0.5"/>
+
+          <!-- Trolley body -->
+          <rect x="54" y="22" width="28" height="14" rx="3" fill="#FF6200"/>
+          <rect x="57" y="24" width="8"  height="5"  rx="1" fill="#C44A00"/>
+          <rect x="69" y="24" width="8"  height="5"  rx="1" fill="#C44A00"/>
+          <!-- Wheels on beam -->
+          <circle cx="60" cy="22" r="3.5" fill="#1A1208" stroke="#FF8C00" stroke-width="1.5"/>
+          <circle cx="76" cy="22" r="3.5" fill="#1A1208" stroke="#FF8C00" stroke-width="1.5"/>
+
+          <!-- Cable (grows down when paying out) -->
+          <g class="crane-cable">
+            <line x1="68" y1="36" x2="68" y2="56" stroke="#FF8C00" stroke-width="2"/>
+            <!-- Hook -->
+            <path d="M65,56 Q60,62 65,68 Q70,74 68,80" stroke="#FF8C00" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          </g>
+
+        </g><!-- /trolley -->
+
+        <!-- Roller falling independently (outside trolley group) -->
+        <g class="crane-obj">
+          <ellipse cx="68" cy="82" rx="10" ry="5" fill="#FF6200"/>
+          <rect x="58" y="82" width="20" height="14" rx="2" fill="#C44A00"/>
+          <ellipse cx="68" cy="96" rx="10" ry="5" fill="#FF8C00" opacity="0.8"/>
+        </g>
+
+        <!-- Impact flash -->
+        <g class="crane-impact" transform="translate(128, 150)">
+          <line x1="0" y1="0" x2="-10" y2="-14" stroke="#FFD700" stroke-width="2"/>
+          <line x1="0" y1="0" x2="10"  y2="-14" stroke="#FFD700" stroke-width="2"/>
+          <line x1="0" y1="0" x2="-14" y2="-4"  stroke="#FFD700" stroke-width="2"/>
+          <line x1="0" y1="0" x2="14"  y2="-4"  stroke="#FFD700" stroke-width="2"/>
+          <line x1="0" y1="0" x2="0"   y2="-18" stroke="#FFD700" stroke-width="2"/>
+        </g>
+
+        <!-- Sparks at impact -->
+        <circle class="sp-a" cx="120" cy="148" r="3" fill="#FFD700"/>
+        <circle class="sp-b" cx="136" cy="148" r="2.5" fill="#FF8C00"/>
+
+      </svg>
+    </div>
+
+    <!-- Text body -->
+    <div class="modal-body">
+      <div class="modal-tag">⚠ ¿Sabías que?</div>
+      <div class="modal-title">Caída de Objetos en Maniobras</div>
+      <p class="modal-text">
+        Ha ocurrido la caída de <strong>herramientas, rodillos y componentes</strong> durante maniobras de traslado o almacenamiento por <strong>mala sujeción o acomodo incorrecto</strong>.<br><br>
+        Un objeto en caída puede provocar <strong>lesiones graves incluso en pocos segundos</strong>.<br><br>
+        Mantente <strong>fuera de la línea de caída</strong> y respeta las zonas de maniobra.
+      </p>
+      <a class="modal-close" id="btn-cerrar-riesgo01" href="#card-riesgo01">
+        ← Cerrar
+      </a>
+    </div>
+    <div class="modal-tape"></div>
+  </div>
+</div>
+
+<footer>
+  <p>Taller de Rodillos &nbsp;·&nbsp; Área Rectificadora &nbsp;·&nbsp; Ternium Monterrey</p>
+  <p><span class="blink">■</span> &nbsp; Mantén el área limpia y señalizada &nbsp;·&nbsp; Usa EPP en todo momento</p>
+</footer>
+
+<script>
+  // Progressive enhancement only — modal works via :target CSS even without this JS.
+  // This script adds .active class for instant open/close without hash changes in the URL.
+  document.addEventListener('DOMContentLoaded', function () {
+    var card     = document.getElementById('card-riesgo01');
+    var modal    = document.getElementById('modal-riesgo01');
+    var btnClose = document.getElementById('btn-cerrar-riesgo01');
+
+    if (!card || !modal) return; // safety guard
+
+    function openModal(e) {
+      // Let the native href="#modal-riesgo01" handle navigation for :target fallback,
+      // but also add .active so browsers that support JS get instant feedback.
+      modal.classList.add('active');
+      modal.scrollTop = 0;
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(e) {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    card.addEventListener('click', openModal);
+    card.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') openModal(e);
+    });
+
+    if (btnClose) btnClose.addEventListener('click', closeModal);
+
+    // Tap the dark overlay background to close
+    modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeModal();
+    });
+
+    // Escape key
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+    });
+
+    // Sync: if modal is closed via :target navigation (back button), remove .active
+    window.addEventListener('hashchange', function () {
+      if (window.location.hash !== '#modal-riesgo01') {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    });
+  });
+</script>
+</body>
+</html>
